@@ -1,0 +1,79 @@
+# Maintainer: David Runge <dvzrv@archlinux.org>
+
+_name=u-boot
+pkgname=uboot-raspberrypi400
+_firmware_commit=fb0bfa6a669745578041e838fc73cc17e8c543c9
+pkgver=2022.10
+pkgrel=1
+pkgdesc="U-Boot for Raspberry Pi 400"
+arch=(aarch64)
+url="https://u-boot.readthedocs.io/en/latest/"
+license=(GPL BSD)
+makedepends=(bc dtc git)
+conflicts=(uboot-raspberrypi)
+provides=(uboot-raspberrypi)
+replaces=(uboot-raspberrypi)
+source=(
+  $_name-$pkgver.tar.gz::https://github.com/u-boot/u-boot/archive/refs/tags/v$pkgver.tar.gz
+  https://github.com/raspberrypi/firmware/raw/$_firmware_commit/boot/bcm2710-rpi-3-b.dtb
+  https://github.com/raspberrypi/firmware/raw/$_firmware_commit/boot/bcm2710-rpi-3-b-plus.dtb
+  https://github.com/raspberrypi/firmware/raw/$_firmware_commit/boot/bcm2710-rpi-cm3.dtb
+  https://github.com/raspberrypi/firmware/raw/$_firmware_commit/boot/bcm2711-rpi-4-b.dtb
+  0001-rpi-increase-space-for-kernel.patch
+  boot.txt
+  config.txt
+  config
+  mkscr
+)
+sha512sums=('33b80421d4b6e9337132e04d18b99c08e43c617622fa9c7a203f9ee1c86f6b0a04ef999792514eb69283470e168630c1f2a43c4d963e90b97f7d8032071cff88'
+            '1fd355a8dec9cb7271c99f682b26d80f45620a8cfdc43fa3eb951140a43cb102391ba9856b3416dc63ae174d436647b19e508c58b9933b15d9379c4e178064dd'
+            '512497c2e6c3aeba632395f1dca101e96b9a17169e6ecd5baa8d455c33b9b37301a8f9bad13ef1dba2120b870fe8c86112d5cf4142e36e7714d18117a2171e70'
+            '31d7dd2939ca8688fc9d937ea8e3eebd92a10f6c8bad3f6220df74449f7a8af8283e96b0b958d32120fd408728605db52a73f702e75dd9f8f9e9b8609a71d850'
+            '37a69b1ddb3ac65335cd699acb67594f7b6893beafee4dbceb6c74c31c453771daddc5d408b9a5468d183a8340b1296831b9fe1d76cfcc31092026b89ff3d732'
+            '6379c77e69676c3450056aece5efb7b269067a07f03a8811609eadbea7b5ab11df5633fa228d07d317d65b9486d794d39de115917ca140e0dbd3e75610532b1a'
+            '8e6b2557b9ac858886d2b3727a0846125ae03669ad95eb09b57ebff9b79612f802c36e1c75778efbbf8380b76a67ec69459ddb526c50d2dcbab31f6c96586538'
+            'e94c810f973eb6b6d0fb3687ea1d70612ba00e9c5d6b3608390a161e077c5591fd9d232c37b42443c05ed28bb639ca1754422ff35899c5e33d7fc266e0e1ad05'
+            'dd97498a92c0f4af45d1e394120c539f472c57e7749f717d900bcb2ab669031fd47d5db753eb9bacc6e2267e9333c8feee924add85ca0f25206eec8a28a9270d'
+            '7046ab4d88efbba636be049be2f660e18c05e48d161d39437c1580b12795ba4d9197ad57ac4572398f80a38d4777507b57228abf4cc41f0081d196ece27ea9d0')
+b2sums=('981404ee900bd13f030d58a9bd9ee7db2d94eed6b1015ea9209c4c86ed18d6aaf3a70a91c31e4051d49265ac4f0ba9fc0a26ed0be484bc0835139052e7f34992'
+        'f74d337eca1ea469b95ccb417dda7c3d75adfc252583c800241bdc56585c4b0afd3a4e0ff10995097ee388a91f09bc944e2e9a0df4ad22482fb86d7a291731c7'
+        '53d7bdca74a41391a506489877a086c667cd1d2e0303c225de92ede44869c3515f4eaf6c9f8ff1346163046cb309e58bbd0696b9a68503513d0549074b0df997'
+        'acf4be39834fc2f7ac01d0091163ab03c3969cc8f01140831364dd19fed379ebb347199008091d1fed85f02eb08eadb345752f77bf3f113ca2bdce2528cdf879'
+        '0ba422223d5d3ed9ad0ddd18d6230a8a6137364593e4c2722160282efcdd0f08b86418f572c8c0bb818d11458ea36dad4ce7038af3cb1df26751fb9871dd1f49'
+        '30833c7ed57282e6e5b60367aa20061a5371a9c3951ef87711361bf969efd7a9f5f1644545a946d4221200bc4cfd88b868f3f84bcfdee581b353e6082f2d5668'
+        '3b12987dc88197d63edb877269a2d280d2a4654f2588d59e173debc5c1aa3086e2ec451994a90b004ba3bee40aa305adf43363ea4ec4f6beae2d7ebf3687636b'
+        '3b89132004c323e46bb07811d5a04cbced8117c6ebbabf5c5772f923f971c265eba175c5cfb24397daecb67331cb7dca140d5de1b3cab96a21c29eb85d397618'
+        '517ec33e68de5d04144b1627ddd619a9b0fbe6c5e9d5b6bc87b63917265169c8970da70179ec1bded0041fe989b0277af4eafcd92c52249c16c60644ecfc8a04'
+        '4ea782264696aa85e30847413088bd338e2beb2ec4e57c2808f80af28ac613ab4ae82b37eb0ff902e66f8a12082a1f9a546bbf20dfeb4c43f59f465987043ede')
+
+prepare() {
+  cd $_name-$pkgver
+
+  patch -p1 -i ../0001-rpi-increase-space-for-kernel.patch
+
+  echo "Setting config..."
+  cp ../config .config
+  make olddefconfig
+}
+
+build() {
+  cd $_name-$pkgver
+
+  unset CFLAGS
+  unset CXXFLAGS
+  unset CPPFLAGS
+
+  make EXTRAVERSION="-$pkgrel"
+}
+
+package() {
+  cd $_name-$pkgver
+
+  install -vDm 755 ../mkscr -t "$pkgdir/boot/"
+
+  install -vDm 644 u-boot.bin "$pkgdir/boot/kernel8.img"
+  install -vDm 644 ../boot.txt -t "$pkgdir/boot/"
+  install -vDm 644 ../*.dtb -t "$pkgdir/boot/"
+  install -vDm 644 ../config.txt -t "$pkgdir/boot/"
+  tools/mkimage -A arm -O linux -T script -C none -n "U-Boot boot script" -d "$pkgdir/boot/boot.txt" "$pkgdir/boot/boot.scr"
+}

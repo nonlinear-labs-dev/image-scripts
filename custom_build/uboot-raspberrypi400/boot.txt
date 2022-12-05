@@ -1,0 +1,126 @@
+# shellcheck disable=SC1000-SC9999
+# disable shellcheck as this is a custom shell
+# https://u-boot.readthedocs.io/en/latest/usage/cmdline.html#hush-shell
+
+test -n "${BOOT_ORDER}" || setenv BOOT_ORDER "A B"
+test -n "${BOOT_A_LEFT}" || setenv BOOT_A_LEFT 3
+test -n "${BOOT_B_LEFT}" || setenv BOOT_B_LEFT 3
+test -n "${DTB_FILE}" || setenv DTB_FILE /dtbs/broadcom/bcm2711-rpi-400.dtb
+
+test -n "${default_bootargs}" || setenv default_bootargs "console=ttyS1,115200 console=tty0 rw rootwait smsc95xx.macaddr=${usbethaddr}"
+
+# TODO: fix issue with fdt_addr/fdt_addr_r:
+# https://github.com/cdsteinkuehler/br2rauc/blob/master/board/raspberrypi/u-boot.ush
+
+# RPi firmware uses a dynamic fdt_addr, but U-Boot does not use the fw
+# provided address if fdt_addr is already defined in the environment!
+# Copy fdt_addr to a local variable and delete the environment variable
+# so it never gets accidentally saved:
+fdt_addr=${fdt_addr}
+env delete fdt_addr
+
+setenv bootargs
+raucargs=""
+
+for boot_slot in "${BOOT_ORDER}"; do
+  if test -z "$raucargs"; then
+    if test "${boot_slot}" = "A"; then
+      if test ${BOOT_A_LEFT} -gt 0; then
+        echo "Found valid slot A, ${BOOT_A_LEFT} attempts remaining"
+        setexpr BOOT_A_LEFT ${BOOT_A_LEFT} - 1
+
+        setenv load_extra_args "load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /override_args.txt"
+        setenv load_fdt "load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} /${DTB_FILE}"
+        setenv load_kernel "load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /Image"
+        setenv load_initramfs "load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img"
+        raucargs="root=/dev/mmcblk0p2 rauc.slot=A"
+      fi
+    elif test "${boot_slot}" = "B"; then
+      if test ${BOOT_B_LEFT} -gt 0; then
+        echo "Found valid slot B, ${BOOT_B_LEFT} attempts remaining"
+        setexpr BOOT_B_LEFT ${BOOT_B_LEFT} - 1
+
+        setenv load_extra_args "load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /override_args.txt"
+        setenv load_fdt "load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} /${DTB_FILE}"
+        setenv load_kernel "load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /Image"
+        setenv load_initramfs "load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img"
+        raucargs="root=/dev/mmcblk0p3 rauc.slot=B"
+      fi
+    fi
+  fi
+done
+
+if test -z "${raucargs}"; then
+  echo "No valid slot found, resetting tries to 3."
+  setenv BOOT_A_LEFT 3
+  setenv BOOT_B_LEFT 3
+  saveenv
+  reset
+fi
+
+# Examine the fdt loaded by the firmware
+# Pass fw_dtb to use the dtb loaded by the firmware
+fdt_live=""
+fdt addr ${fdt_addr}
+fdt get value bootargs_fw /chosen bootargs
+for arg in ${bootargs_fw} ; do
+  if test "x${arg}" = "xfw_dtb" ; then
+    fdt_live=${fdt_addr}
+  fi
+done
+
+# Save bootargs_fw in a local variable for later use
+bootargs_fw=${bootargs_fw}
+env del bootargs_fw
+
+if test -z "${fdt_live}"; then
+  # Using device-tree from rootfs
+  # Check to see if we have any customizations in an override_args.txt file
+  env del bootargs_force bootargs_extra
+  echo "Checking if override_args.txt is present..."
+  if run load_extra_args ; then
+    echo "Importing override_args.txt..."
+    env import -t -r ${fileaddr} ${filesize}
+    echo "Done!"
+  fi
+
+  # Load our actual device-tree file
+  echo "Loading device-tree file..."
+  run load_fdt
+  echo "Done!"
+
+  if test "$DTB_FILE" = "/dtbs/broadcom/bcm2711-rpi-400.dtb"; then
+    echo "Detected RaspberryPi 400, so using firmware provided device-tree..."
+    fdt_live=${fdt_addr}
+  else
+    # Point to run-time device-tree
+    fdt_live=${fdt_addr_r}
+  fi
+
+  # Setup kernel parameters
+  if test -n "${bootargs_force}" ; then
+    setenv bootargs "${bootargs_force} ${raucargs}"
+  else
+    setenv bootargs "${bootargs_default} ${bootargs_extra} ${raucargs}"
+  fi
+else
+  # Using FW provided device-tree
+  # Append rauc boot arguments to FW generated command line
+  # This setting will override /chosen/bootargs in the device-tree
+  echo "Using firmware device-tree"
+  setenv bootargs "${bootargs_fw} ${raucargs}"
+fi
+
+# save environment to file
+saveenv
+
+echo "Loading kernel..."
+run load_kernel
+echo "Done!"
+
+echo "Loading initramfs..."
+run load_initramfs
+echo "Done!"
+
+echo "Starting kernel"
+booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_live}
