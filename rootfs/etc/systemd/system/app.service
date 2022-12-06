@@ -1,0 +1,13 @@
+[Unit]
+Description=Application System
+Requires=app.target
+After=sound.target
+FailureAction=reboot-force
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

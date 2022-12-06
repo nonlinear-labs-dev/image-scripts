@@ -1,0 +1,12 @@
+[Unit]
+Description=Mark boot slot as good
+Documentation=man:rauc(1)
+Requires=app.target
+After=app.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rauc status mark-good
+
+[Install]
+WantedBy=multi-user.target
