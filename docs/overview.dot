@@ -1,0 +1,68 @@
+digraph {
+    node [shape="box3d"; style="filled"];
+    subgraph cluster_0 {
+        "install.img";
+        label = "Upstream";
+        color = red;
+    }
+    subgraph cluster_1 {
+        "build_data.img";
+        label = "Build environment";
+        color = orange;
+        rank = same;
+        subgraph cluster_2 {
+            "/ (2560 MiB)";
+            "/boot (256 MiB)";
+            label = "Build image";
+        }
+    }
+    subgraph cluster_3 {
+        "root.ext4.img (2560 MiB)";
+        "esp.vfat.img (256 MiB)";
+        label = "Intermediate images";
+        color = blue;
+        rank = same;
+    }
+    subgraph cluster_4 {
+        "/dev/sda3 Root partition B (2560 MiB)";
+        "/dev/sda2 Root partition A (2560 MiB)";
+        label = "Initial installation image";
+        color = green;
+        rank = same;
+        subgraph cluster_5 {
+            label = "ESP Partition (512 MiB)";
+            "/dev/sda1 A (256 MiB)";
+            "/dev/sda1 B (256 MiB)";
+        }
+    }
+    subgraph cluster_6 {
+        label = "RAUC update bundle";
+        color = green;
+        rank = same;
+        "manifest.raucm" [shape = "note"];
+        "slot.rootfs (2560 MiB)";
+        "slot.esp (256 MiB)";
+    }
+    subgraph cluster_7 {
+        label = "Custom files";
+        color = violet;
+        "RAUC system.conf";
+        "u-boot fw_env.config";
+    }
+    "install.img" -> "/ (2560 MiB)";
+    "/ (2560 MiB)" -> "/ (2560 MiB)" [label = "update and provision"];
+    "install.img" -> "/boot (256 MiB)";
+    "/boot (256 MiB)" -> "/boot (256 MiB)" [label = "EFI boot"];
+    "build_data.img" -> "build_data.img" [label = "build custom packages (e.g. u-boot)"];
+    "build_data.img" -> "/ (2560 MiB)" [label = "install custom packages (e.g. u-boot)"];
+    "/boot (256 MiB)" -> "esp.vfat.img (256 MiB)";
+    "/ (2560 MiB)" -> "root.ext4.img (2560 MiB)";
+    "RAUC system.conf" -> "root.ext4.img (2560 MiB)";
+    "u-boot fw_env.config" -> "root.ext4.img (2560 MiB)";
+    "esp.vfat.img (256 MiB)" -> "/dev/sda1 A (256 MiB)";
+    "esp.vfat.img (256 MiB)" -> "/dev/sda1 B (256 MiB)";
+    "root.ext4.img (2560 MiB)" -> "/dev/sda2 Root partition A (2560 MiB)";
+    "root.ext4.img (2560 MiB)" -> "/dev/sda3 Root partition B (2560 MiB)";
+    "esp.vfat.img (256 MiB)" -> "slot.esp (256 MiB)";
+    "root.ext4.img (2560 MiB)" -> "slot.rootfs (2560 MiB)";
+}
